@@ -1,0 +1,240 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Food Detection & Nutrition Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffe4e1;
+            color: #333;
+            text-align: center;
+        }
+        .navbar {
+            background-color: #b6deff;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 999;
+            padding: 10px 0;
+        }
+        .navbar a {
+            display: inline-block;
+            color: #333;
+            padding: 14px 16px;
+            text-decoration: none;
+            transition: transform 0.3s, font-size 0.3s;
+        }
+        .navbar a:hover {
+            background-color: #ffc0cb;
+            transform: scale(1.1);
+            font-size: 18px;
+        }
+        .navbar img {
+            height: 40px;
+            vertical-align: middle;
+        }
+        .container {
+            margin-top: 80px;
+            padding: 20px;
+        }
+        .food-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 400px;
+            margin-bottom: 400px;
+            flex-wrap: wrap;
+        }
+        .box-label {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #444;
+            text-align: center;
+            width: 220px;
+        }
+        .glucose-box {
+            width: 660px;
+            min-height: 220px;
+            border-radius: 55px;
+            padding: 50px;
+            box-sizing: border-box;
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8a2f1;
+            color: #333;
+        }
+        .results-box {
+            width: 300px;
+            min-height: 220px;
+            border-radius: 15px;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
+            background-color: #b6deff;
+            color: #333;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .alert {
+            color: rgb(243, 100, 100);
+            font-weight: bold;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        select, input[type="file"], input[type="submit"] {
+            padding: 10px;
+            margin: 10px;
+            font-size: 16px;
+            width: 180px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        input[type="submit"] {
+            background-color: #b6deff;
+            color: #333;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.3s, font-size 0.3s;
+        }
+        input[type="submit"]:hover {
+            background-color: #ffc0cb;
+            transform: scale(1.1);
+            font-size: 18px;
+        }
+        .back {
+            margin-top: 20px;
+        }
+        .back a {
+            color: #333;
+            text-decoration: none;
+            font-size: 16px;
+            transition: transform 0.3s, font-size 0.3s;
+        }
+        .back a:hover {
+            color: #f8a2f1;
+            transform: scale(1.1);
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <img src="logo.png" alt="Logo" />
+        <a href="recipes.html">Recipes</a>
+        <a href="exercises.html">Exercises</a>
+        <a href="products.html">Products</a>
+        <a href="https://chatgpt.com/g/g-TLQZRPNDG-insu-bot">Chat Bot</a>
+        <a href="/food">Food Calculator</a>
+        <a href="type1.html">My Meal</a>
+        <a href="/">My Measurements</a>
+    </div>
+
+    <div class="container">
+        <h1>Food Detection & Nutrition Calculator</h1>
+
+        <div class="food-wrapper">
+            <div>
+                <div class="box-label">Upload Food Image</div>
+                <div class="glucose-box">
+                    <form method="POST" enctype="multipart/form-data">
+                        <label class="box-label">Select Category</label>
+                        <select name="category">
+                            <option value="Fruit">Fruit</option>
+                            <option value="Vegetables">Vegetables</option>
+                            <option value="Product">Product</option>
+                            <option value="Fast Food">Fast Food</option>
+                        </select>
+                        <input type="file" name="file" accept="image/*" required>
+                        <input type="submit" value="Upload & Detect">
+                    </form>
+                </div>
+            </div>
+
+            {% if detected_items %}
+            <div>
+                <div class="box-label">Nutrition Results</div>
+                <div class="results-box">
+                    <h2>Detected Items:</h2>
+                    <ul>
+                        {% for item in detected_items %}
+                        <li>{{ item.name }} - Carbs: {{ item.carbs }}g, Calories: {{ item.calories }} kcal</li>
+                        {% endfor %}
+                    </ul>
+                    <p><strong>Total Carbs:</strong> {{ total_carbs }}g</p>
+                    <p><strong>Total Calories:</strong> {{ total_calories }} kcal</p>
+                    {% if total_calories > 500 %}
+                    <div class="alert">
+                        <p>High intake! Consider reducing the portion or choosing alternatives:</p>
+                        <ul>
+                            {% for item in detected_items %}
+                            {% if item.alternative %}
+                            <li>Replace {{ item.name }} with {{ item.alternative }}</li>
+                            {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="back">
+            <a href="/">Back to Measurements</a>
+        </div>
+    </div>
+</body>
+</html>
